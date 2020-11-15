@@ -79,7 +79,7 @@ class LinkedinSpider(Spider):
                         }
                  #next page?
                 next_page = self.driver.find_element_by_xpath('//button[contains(@aria-label, "Avançar")][not(@disabled)]')
-                next_page.click() #Will throuw noSuchElementException at the last page
+                next_page.click() #Will throuw noSuchElementException at the last page due to @disable
                 page += 1
                 sleep(2)
             except NoSuchElementException: 

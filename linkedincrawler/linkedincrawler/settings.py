@@ -14,6 +14,12 @@ BOT_NAME = 'linkedincrawler'
 SPIDER_MODULES = ['linkedincrawler.spiders']
 NEWSPIDER_MODULE = 'linkedincrawler.spiders'
 
+#The encoding to be used for the feed.
+#If unset or set to None (default) it uses UTF-8 for everything except JSON output, which uses safe numeric encoding (\uXXXX sequences) for historic reasons.
+#Use utf-8 if you want UTF-8 for JSON too.
+FEED_EXPORT_ENCODING = 'UTF-8'
+
+
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'linkedincrawler (+http://www.yourdomain.com)'
