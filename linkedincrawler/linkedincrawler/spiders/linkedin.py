@@ -26,15 +26,23 @@ class LinkedinSpider(Spider):
         self.driver.find_element_by_xpath('//button[@data-litms-control-urn="login-submit"]').click()
         sleep(3)
 
-        #SEARCH TYPE
-        #1º and 2º
-        #https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22F%22%2C%22S%22%5D&origin=FACETED_SEARCH
-
-        #1º
-        #https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22F%22%5D&origin=FACETED_SEARCH
-
+        #SEARCH GRADE
+        grade = getattr(self,'grade','')
+        if grade:
+            if grade == str(3):
+                #1º, 2º and 3º+
+                search_url = r'https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22F%22%2C%22S%22%2C%22O%22%5D&keywords=sage%20x3&origin=FACETED_SEARCH'
+            elif grade == str(2):
+                #1º and 2º
+                search_url = r'https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22F%22%2C%22S%22%5D&origin=FACETED_SEARCH'
+            else:
+                #1º
+                search_url = r'https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22F%22%5D&origin=FACETED_SEARCH'
         #SEARCH
-        self.driver.get(r'https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22F%22%5D&origin=FACETED_SEARCH')
+        else:
+            raise NoSuchElementException(msg='Invalid grade parameter')
+
+        self.driver.get(search_url)
         
         if getattr(self, 'search', ''):
             self.driver.find_element_by_xpath('//input[starts-with(@class, "search-global-typeahead__input")]').send_keys(getattr(self, 'search', ''))
