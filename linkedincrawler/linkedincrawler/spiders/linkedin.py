@@ -27,30 +27,25 @@ class LinkedinSpider(Spider):
         sleep(3)
 
         #SEARCH GRADE
-        grade = getattr(self,'grade','')
-        if grade:
-            if grade == str(3):
-                #1º, 2º and 3º+
-                search_url = r'https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22F%22%2C%22S%22%2C%22O%22%5D&keywords=sage%20x3&origin=FACETED_SEARCH'
-            elif grade == str(2):
-                #1º and 2º
-                search_url = r'https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22F%22%2C%22S%22%5D&origin=FACETED_SEARCH'
-            else:
-                #1º
-                search_url = r'https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22F%22%5D&origin=FACETED_SEARCH'
-        #SEARCH
-        else:
-            raise NoSuchElementException(msg='Invalid grade parameter')
+        ###### PARAMETERS
+        #3   &facetNetwork=%5B%22F%22%2C%22S%22%2C%22O%22%5D
+        #2   &facetNetwork=%5B%22F%22%2C%22S%22%5D
+        #1   &facetNetwork=%5B%22F%22%5D
+        search_url = r'https://www.linkedin.com/search/results/people/?origin=FACETED_SEARCH'
+        if getattr(self,'keywords',''):
+            keywords = r'&keywords='+str(getattr(self,'keywords','')).replace(' ', '%20')
+            search_url += keywords
+        
+        if getattr(self, 'facetGeoUrn', ''):
+            facetGeoUrn =  r'&facetGeoUrn='+str(getattr(self, 'facetGeoUrn', '')).replace('[', '%5B').replace(']', '%5D').replace('"', '%22').replace(',', '%2C')
+            search_url += facetGeoUrn
+
+        if getattr(self, 'facetNetwork', ''):
+            facetNetwork = r'&facetNetwork='+str(getattr(self, 'facetNetwork', '')).replace('[', '%5B').replace(']', '%5D').replace('"', '%22').replace(',', '%2C')
+            search_url += facetNetwork
 
         self.driver.get(search_url)
         
-        if getattr(self, 'search', ''):
-            self.driver.find_element_by_xpath('//input[starts-with(@class, "search-global-typeahead__input")]').send_keys(getattr(self, 'search', ''))
-            self.driver.find_element_by_xpath('//input[starts-with(@class, "search-global-typeahead__input")]').send_keys(Keys.RETURN)
-            sleep(3)
-        else:
-            pass #parse every result
-
         #PARSE SEARCH RESULT
         while True:
             try:
