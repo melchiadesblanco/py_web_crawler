@@ -34,7 +34,9 @@ class LinkedinSpider(Spider):
         #https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22F%22%5D&origin=FACETED_SEARCH
 
         #SEARCH
-        self.driver.get(r'https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22F%22%5D&origin=FACETED_SEARCH')
+        #self.driver.get(r'https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22F%22%5D&origin=FACETED_SEARCH')
+        self.driver.get(r'https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22F%22%5D&origin=FACETED_SEARCH&page=100')
+        
         if getattr(self, 'skill', ''):
             self.driver.find_element_by_xpath('//input[starts-with(@class, "search-global-typeahead__input")]').send_keys('Sage X3')
             self.driver.find_element_by_xpath('//input[starts-with(@class, "search-global-typeahead__input")]').send_keys(Keys.RETURN)
@@ -77,7 +79,7 @@ class LinkedinSpider(Spider):
                             'local': local
                         }
                  #next page?
-                next_page = self.driver.find_element_by_xpath('//button[contains(@aria-label, "Avançar")]')
+                next_page = self.driver.find_element_by_xpath('//button[contains(@aria-label, "Avançar")][not(@disabled)]')
                 next_page.click()
                 page += 1
                 sleep(2)
