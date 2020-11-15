@@ -18,8 +18,8 @@ class X3iteratorSpider(Spider):
         #self.driver.get('http://books.toscrape.com')
         self.driver.get('https://intech.sageerpx3.com.br/auth/login/page')
 
-        self.driver.find_element_by_id('login').send_keys('melchiades.blanco')
-        self.driver.find_element_by_id('password').send_keys('work6JOB6')
+        self.driver.find_element_by_id('login').send_keys('####')
+        self.driver.find_element_by_id('password').send_keys('####')
         self.driver.find_element_by_xpath(r'/html/body/div/div/div[1]/form/div[4]/input[1]').click()
 
         #Wait for it to load
