@@ -34,11 +34,10 @@ class LinkedinSpider(Spider):
         #https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22F%22%5D&origin=FACETED_SEARCH
 
         #SEARCH
-        #self.driver.get(r'https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22F%22%5D&origin=FACETED_SEARCH')
-        self.driver.get(r'https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22F%22%5D&origin=FACETED_SEARCH&page=100')
+        self.driver.get(r'https://www.linkedin.com/search/results/people/?facetNetwork=%5B%22F%22%5D&origin=FACETED_SEARCH')
         
-        if getattr(self, 'skill', ''):
-            self.driver.find_element_by_xpath('//input[starts-with(@class, "search-global-typeahead__input")]').send_keys('Sage X3')
+        if getattr(self, 'search', ''):
+            self.driver.find_element_by_xpath('//input[starts-with(@class, "search-global-typeahead__input")]').send_keys(getattr(self, 'search', ''))
             self.driver.find_element_by_xpath('//input[starts-with(@class, "search-global-typeahead__input")]').send_keys(Keys.RETURN)
             sleep(3)
         else:
@@ -66,12 +65,12 @@ class LinkedinSpider(Spider):
                     subline = li.xpath('.//p[contains(@class, "subline-level-1")]/text()').extract_first()
                     local = li.xpath('.//p[contains(@class, "subline-level-2")]/text()').extract_first()
                     
-                    if subline:
-                        subline = subline.strip()
-
-                    if local:
-                        local = local.strip()
                     if name:
+                        if subline:
+                            subline = subline.strip()
+                        if local:
+                           local = local.strip()
+
                         yield {
                             'name': name, 
                             'connection_grade': connection_grade,
@@ -80,7 +79,7 @@ class LinkedinSpider(Spider):
                         }
                  #next page?
                 next_page = self.driver.find_element_by_xpath('//button[contains(@aria-label, "Avançar")][not(@disabled)]')
-                next_page.click()
+                next_page.click() #Will throuw noSuchElementException at the last page
                 page += 1
                 sleep(2)
             except NoSuchElementException: 
