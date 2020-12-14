@@ -8,6 +8,8 @@ class KabumSpider(Spider):
     name = 'kabum'
     allowed_domains = ['kabum.com.br']
     options = '?pagina=1&ordem=5&limite=100000&prime=false'
+    CAT_LIMIT   = 3     # 0 - NO limit
+    ITEM_LIMIT  = 10    # Use this variables to control how deep the spider goes
     start_urls = ['https://www.kabum.com.br/hardware/coolers',
     'https://www.kabum.com.br/hardware/disco-rigido-hd',
     'https://www.kabum.com.br/hardware/drives',
@@ -197,48 +199,68 @@ class KabumSpider(Spider):
     'https://www.kabum.com.br/eletrodomesticos/lava-e-seca-maquina-de-lavar-e-tanquinho']
 
     def start_requests(self):
+        count = 1
         for url in self.start_urls:
+            #Just limiting scraped itens during dev times
+            if  count > self.CAT_LIMIT > 0:
+                break
+
+            count +=1
             yield SplashRequest(url+self.options, self.parse, 
                 endpoint='render.html',
                 args={'wait': 0.5},
                 meta={'category': url.split(sep='/')[-1]}
             )
 
-    # def parse(self, response):
-    #     categories = response.xpath('//div[@id="menu_left_fundo"]/div[@id="menu_left"]/div[@class="texto_categoria"]/p[@class="bot-categoria"]/a')
-    #     for category in categories:
-    #         absolute_url = response.urljoin(category.xpath('./@href').extract_first())
-    #         # yield {
-    #         #     'category': category.xpath('./text()').extract_first(), 
-    #         #     'catlink': absolute_url
-    #         # }
-    #         yield SplashRequest(url=absolute_url, meta={'category': category.xpath('./text()').extract_first()}, callback=self.parse_category)
-
     def parse(self, response):
-        products = response.xpath('//div[@id="listagem-produtos"]/div/div/div')
+        #PRODUCT LINES BLOCK
+        #//div[@id="listagem-produtos"]/div/div/div
+        products = response.xpath('//div[@id="listagem-produtos"]/div/div')
+        count = 1
         for product in products:
-            # ./a           - image
-            # ./div[1]      - description
-            # ./div[2]      - price
-            img = product.xpath('./a/img/@src').extract_first()
+            #TODO: The first 2 divs and the last one should be discarted, the following if do that in an ugly way.
+            #if you are code reviewing you could try to use [2:] instead
+            if count <= 2:
+                count +=1
+                continue
 
-            name = product.xpath('./div[1]/a/text()').extract_first()
-            link = response.urljoin( product.xpath('./div[1]/a/@href').extract_first() )
+            #Just limiting scrapped itens during dev time
+            if count > self.ITEM_LIMIT > 0:
+                break
+            # ./div/a/img           - image
+            # ./div/div[1]/a        - name
+            # ./div/div[1]/a        - link
+            img = product.xpath('./div/a/img/@src').extract_first()
 
-            old_price = product.xpath('./div[2]/div[1]/text()').extract_first()
-            if old_price is not None and old_price.find('De') and old_price.find('por'):
+            name = product.xpath('./div/div[1]/a/text()').extract_first()
+            link = response.urljoin( product.xpath('./div/div[1]/a/@href').extract_first() )
+
+            #PRICING BLOCK
+            #./div/div[2]/div[1]
+            pblock = './div/div[2]/div[1]'
+            #                   ./div[1] Old Price (Occurs 0-1)   ->  If is not present, the other divs should be re-indexed
+            #                   ./div[2] Price (Occurs aways)
+            #                   ./div[3] Installment (Occurs aways)
+            #                   ./div[4] Cash Price (Occurs aways)
+            #                   ./div[5] Cash Payment Type (Occurs aways)
+
+            old_price =         product.xpath(pblock+'/div[1]/text()').extract_first()
+            if old_price is not None and old_price != '' and old_price.find('De') and old_price.find('por'):
                 #that means the div[1] is really an old price
                 #there is an old price and thus 5 div are shown
-                price =         product.xpath('./div[2]/div[2]/text()').extract_first()
-                installment =   product.xpath('./div[2]/div[3]/text()').extract_first()
-                cash =       product.xpath('./div[2]/div[4]/text()').extract_first()
+                price =         product.xpath(pblock+'/div[2]/text()').extract_first()
+                installment =   product.xpath(pblock+'/div[3]/text()').extract_first()
+                cash =          product.xpath(pblock+'/div[4]/text()').extract_first()
+                cash_tpay =     product.xpath(pblock+'/div[5]/text()').extract_first()
             else:
                 #there is no old price and thus 4 div are shown
                 old_price = ''
-                price =         product.xpath('./div[2]/div[1]/text()').extract_first()
-                installment =   product.xpath('./div[2]/div[2]/text()').extract_first()
-                cash =       product.xpath('./div[2]/div[3]/text()').extract_first()
+                price =         product.xpath(pblock+'/div[1]/text()').extract_first()
+                installment =   product.xpath(pblock+'/div[2]/text()').extract_first()
+                cash =          product.xpath(pblock+'/div[3]/text()').extract_first()
+                cash_tpay =     product.xpath(pblock+'/div[4]/text()').extract_first()
 
+            count += 1
             yield {
                 'category': response.meta['category'],
                 'name': name, 
@@ -247,9 +269,12 @@ class KabumSpider(Spider):
                 'old_price': old_price, 
                 'price': price, 
                 'installment': installment, 
-                'cash': cash
+                'cash': cash,
+                'cash_tpay': cash_tpay
             }
 
+        #TODO: When a product page is loaded, I'm passing 'opstions' variable to include 100.000 products in one page
+        #that should be enough, but if there are more that that, we should consider inplement this next page code
         # more_pages = response.xpath('//div[contains(text(),"Próxima")]/@disabled=""').extract_first()
         # # 0 means there is still pages to be parsed
         # # 1 means there is no page
