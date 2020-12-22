@@ -2,14 +2,19 @@
 from scrapy import Spider
 from scrapy.http import Request
 from scrapy_splash import SplashRequest
+from datetime import datetime
 
 
 class KabumSpider(Spider):
     name = 'kabum'
     allowed_domains = ['kabum.com.br']
-    options = '?pagina=1&ordem=5&limite=100000&prime=false'
-    CAT_LIMIT   = 3     # 0 - NO limit
-    ITEM_LIMIT  = 10    # Use this variables to control how deep the spider goes
+    CAT_LIMIT   = 0             # 0 - NO limit - Use these variables to control how deep the spider goes
+    ITEM_LIMIT  = 100000        # 
+    if ITEM_LIMIT < 10:
+        OPTIONS = '?pagina=1&ordem=5&limite=10&prime=false'
+    else:
+        OPTIONS = '?pagina=1&ordem=5&limite='+str(ITEM_LIMIT)+'&prime=false'
+    
     start_urls = ['https://www.kabum.com.br/hardware/coolers',
     'https://www.kabum.com.br/hardware/disco-rigido-hd',
     'https://www.kabum.com.br/hardware/drives',
@@ -206,7 +211,7 @@ class KabumSpider(Spider):
                 break
 
             count +=1
-            yield SplashRequest(url+self.options, self.parse, 
+            yield SplashRequest(url+self.OPTIONS, self.parse, 
                 endpoint='render.html',
                 args={'wait': 0.5},
                 meta={'category': url.split(sep='/')[-1]}
@@ -245,7 +250,7 @@ class KabumSpider(Spider):
             #                   ./div[5] Cash Payment Type (Occurs aways)
 
             old_price =         product.xpath(pblock+'/div[1]/text()').extract_first()
-            if old_price is not None and old_price != '' and old_price.find('De') and old_price.find('por'):
+            if old_price is not None and old_price != '' and old_price.find('De') != -1 and old_price.find('por') != -1:
                 #that means the div[1] is really an old price
                 #there is an old price and thus 5 div are shown
                 price =         product.xpath(pblock+'/div[2]/text()').extract_first()
@@ -260,8 +265,26 @@ class KabumSpider(Spider):
                 cash =          product.xpath(pblock+'/div[3]/text()').extract_first()
                 cash_tpay =     product.xpath(pblock+'/div[4]/text()').extract_first()
 
+            #CLEAN UP
+            if old_price is not None:
+                old_price = old_price.replace('De ', '').replace(' por', '').replace('R$ ', '').replace('.', ',')
+            if price is not None:
+                price = price.replace('R$ ', '').replace('.', ',')
+            if installment is not None:
+                installment = installment.replace('Em atÃ© ', '')
+            if cash is not None:
+                cash = cash.replace('R$ ', '').replace('.', ',')
+            if cash_tpay is not None:
+                cash_tpay = cash_tpay.replace('no ', '')
+
+            #SKIP TRASH VALUE AT THE END OF PAGE
+            if price is None and cash is None:
+                count += 1
+                continue
+
             count += 1
             yield {
+                'wholesale': 'kabum.com.br',
                 'category': response.meta['category'],
                 'name': name, 
                 'link': link, 
@@ -270,7 +293,8 @@ class KabumSpider(Spider):
                 'price': price, 
                 'installment': installment, 
                 'cash': cash,
-                'cash_tpay': cash_tpay
+                'cash_tpay': cash_tpay,
+                'snapshot': str(datetime.now())
             }
 
         #TODO: When a product page is loaded, I'm passing 'opstions' variable to include 100.000 products in one page
